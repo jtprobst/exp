@@ -157,19 +157,6 @@ func newGreenbaum41(n int, d1, dn, rho float64, rnd *rand.Rand) testCase {
 	a := make([]float64, n*n)
 	testlapack.Dlagsy(n, 0, d, a, n, rnd, make([]float64, 2*n))
 	A := mat.NewSymDense(n, a)
-	// Generate the right-hand side.
-	b := make([]float64, n)
-	for i := range b {
-		b[i] = rnd.NormFloat64()
-	}
-	// Compute the solution using the Cholesky factorization.
-	var chol mat.Cholesky
-	ok := chol.Factorize(A)
-	if !ok {
-		panic("bad test matrix")
-	}
-	want := make([]float64, n)
-	chol.SolveVec(mat.NewVecDense(n, want), mat.NewVecDense(n, b))
 	// Matrix-vector multiplication.
 	mulVecTo := func(dst []float64, _ bool, x []float64) {
 		if len(dst) != n || len(x) != n {
@@ -178,16 +165,27 @@ func newGreenbaum41(n int, d1, dn, rho float64, rnd *rand.Rand) testCase {
 		d := mat.NewVecDense(n, dst)
 		d.MulVec(A, mat.NewVecDense(n, x))
 	}
-	// Store the diagonal for preconditioning.
-	diag := make([]float64, n)
-	for i := range diag {
-		diag[i] = A.At(i, i)
+	// Generate a reference solution.
+	want := make([]float64, n)
+	for i := range want {
+		want[i] = 1 + float64(i%3)
+	}
+	// Compute the corresponding right-hand side.
+	b := make([]float64, n)
+	mulVecTo(b, false, want)
+	// If SPD, store the diagonal for preconditioning.
+	var diag []float64
+	if d1 > 0 {
+		diag = make([]float64, n)
+		for i := range diag {
+			diag[i] = A.At(i, i)
+		}
 	}
 	return testCase{
 		name:     fmt.Sprintf("Greenbaum 4.1 n=%v,d_1=%v,d_n=%v,rho=%v", n, d1, dn, rho),
 		mulVecTo: mulVecTo,
 		b:        b,
-		tol:      1e-11,
+		tol:      1e-12,
 		diag:     diag,
 		want:     want,
 	}
@@ -377,7 +375,7 @@ func newGreenbaum73(nx, ny int, rnd *rand.Rand) testCase {
 		negOne, negOne, // - ∂_x ∂_x u - ∂_y ∂_y u
 		func(x, _ float64) float64 { return 40 * x }, // 40 * x * ∂_x u
 		func(_, y float64) float64 { return 40 * y }, // 40 * y * ∂_y u
-		constant(-100), // -100 * u
+		constant(-100),                               // -100 * u
 		random(rnd))
 	tc.name = fmt.Sprintf("Greenbaum 7.3 nx=%v,ny=%v", nx, ny)
 	return tc
