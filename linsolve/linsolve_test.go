@@ -168,7 +168,7 @@ func newGreenbaum41(n int, d1, dn, rho float64, rnd *rand.Rand) testCase {
 	// Generate a reference solution.
 	want := make([]float64, n)
 	for i := range want {
-		want[i] = 1 + float64(i%3)
+		want[i] = 1 + 0.1*float64(i%2)
 	}
 	// Compute the corresponding right-hand side.
 	b := make([]float64, n)
@@ -375,7 +375,7 @@ func newGreenbaum73(nx, ny int, rnd *rand.Rand) testCase {
 		negOne, negOne, // - ∂_x ∂_x u - ∂_y ∂_y u
 		func(x, _ float64) float64 { return 40 * x }, // 40 * x * ∂_x u
 		func(_, y float64) float64 { return 40 * y }, // 40 * y * ∂_y u
-		constant(-100),                               // -100 * u
+		constant(-100), // -100 * u
 		random(rnd))
 	tc.name = fmt.Sprintf("Greenbaum 7.3 nx=%v,ny=%v", nx, ny)
 	return tc
